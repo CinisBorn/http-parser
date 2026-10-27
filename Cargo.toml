@@ -1,0 +1,7 @@
+[package]
+name = "http-parser"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+http-core = { git = "https://github.com/CinisBorn/http-core"}
