@@ -1,10 +1,17 @@
 //! The HTTP Response
 
+use std::{collections::HashMap};
+
+use headers::insert_header_with_list_value;
+
 use http_core::Method;
-use http_core::response::Response;
-use http_core::response::ResponseData;
-use http_core::response::StatusCode;
-use std::collections::HashMap;
+use http_core::response::{
+    Response, 
+    ResponseData, 
+    StatusCode
+};
+
+mod headers;
 
 impl SerializeResponse for Response {}
 
@@ -25,7 +32,15 @@ pub trait SerializeResponse: ResponseData {
         insert_content_length(&mut headers, serialize_body, content_length);
 
         if let StatusCode::MethodNotAllowed(methods) = status {
-            insert_allow_header(&mut headers, methods.clone());
+            insert_header_with_list_value(
+                &mut headers, 
+                "Allow", 
+                methods
+                    .iter()
+                    .cloned()
+                    .map(|v| v.to_str().to_string())
+                    .collect::<Vec<String>>()
+            );
         }
 
         let response_headers = self.get_headers();
@@ -130,14 +145,4 @@ fn insert_content_length(
     if serialize_body {
         headers.insert("Content-Length".to_string(), content_length.to_string());
     }
-}
-
-fn insert_allow_header(headers: &mut HashMap<String, String>, methods: Vec<Method>) {
-    let mut value = String::new();
-
-    for method in methods {
-        value.push_str(method.to_str());
-    }
-
-    headers.insert("Allow".to_string(), value);
 }
