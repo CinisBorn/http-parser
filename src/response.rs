@@ -2,7 +2,7 @@
 
 use std::{collections::HashMap};
 
-use headers::insert_header_with_list_value;
+use headers::{insert_header_with_list_value, insert_header};
 
 use http_core::Method;
 use http_core::response::{
@@ -29,7 +29,13 @@ pub trait SerializeResponse: ResponseData {
         let body = insert_body(body.as_ref(), serialize_body);
         let content_length = body.len() - 2;
 
-        insert_content_length(&mut headers, serialize_body, content_length);
+        if serialize_body {
+            insert_header(
+                &mut headers, 
+                "Content-Length", 
+                content_length
+            );
+        }
 
         if let StatusCode::MethodNotAllowed(methods) = status {
             insert_header_with_list_value(
@@ -134,15 +140,4 @@ fn check_response(status: &str, method: &Method) -> bool {
     let status = !matches!(status, "304" | "204");
 
     method && status
-}
-
-/// Inserts content length header conditionally
-fn insert_content_length(
-    headers: &mut HashMap<String, String>,
-    serialize_body: bool,
-    content_length: usize,
-) {
-    if serialize_body {
-        headers.insert("Content-Length".to_string(), content_length.to_string());
-    }
 }
