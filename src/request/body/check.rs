@@ -7,7 +7,9 @@ pub(crate) enum BodyProcessMethod {
     None 
 }
 
-pub(crate) fn body_framing_method(headers: &Option<HashMap<String, String>>) -> Result<BodyProcessMethod, ParserErr> {
+pub(crate) fn body_framing_method(
+    headers: &Option<HashMap<String, String>>
+) -> Result<BodyProcessMethod, ParserErr> {
     if let Some(headers) = headers {
         let is_transfer = headers.contains_key("Transfer-Coding");
         let is_content = headers.contains_key("Content-Length");
@@ -26,3 +28,40 @@ pub(crate) fn body_framing_method(headers: &Option<HashMap<String, String>>) -> 
     }
 }
 
+#[cfg(test)]
+mod framing {
+    use super::*;
+
+    #[test]
+    fn return_correct_framing_method() {
+        let mut headers = HashMap::new();
+
+        headers.insert("Content-Length".to_string(), "12".to_string());
+
+        match body_framing_method(&Some(headers)).unwrap() {
+            BodyProcessMethod::ContentLength => assert!(true),
+            _ => assert!(false)
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn conflict_is_error() {
+        let mut headers = HashMap::new();
+
+        headers.insert("Content-Length".to_string(), "12".to_string());
+        headers.insert("Transfer-Coding".to_string(), "chunked".to_string());
+
+        body_framing_method(&Some(headers)).unwrap();
+    }
+
+    #[test]
+    fn header_not_exists() {
+        let res = body_framing_method(&None).unwrap();
+
+        match res  {
+            BodyProcessMethod::None => assert!(true),
+            _ => assert!(false)
+        }
+    }
+}
