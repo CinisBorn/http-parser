@@ -34,7 +34,7 @@ where
         return Ok(ParserState::ConnectionClosed);
     };
 
-    let method = check::body_framing_method(&headers);
+    let method = check::body_framing_method(headers.as_ref());
 
     match method {
         Ok(body_method) => match body_method {
