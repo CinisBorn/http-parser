@@ -11,8 +11,16 @@ pub enum ParserErr {
     InvalidInput(String),
     /// The client made a request with an unsupported HTTP version.
     UnsupportedHttpVersion(String),
+    /// The header contain invalid headers.
+    InvalidHeader(HeaderParserError),
     /// The request contains more items than expected.
     TooManyItems,
+}
+
+#[derive(Debug)]
+pub enum HeaderParserError {
+    ConflictingBodyFraming,
+    InvalidTransferEncoding(String)
 }
 
 impl std::error::Error for ParserErr {}
@@ -23,6 +31,14 @@ impl std::fmt::Display for ParserErr {
             ParserErr::InvalidInput(s) => write!(f, "Unexpected input: {s}"),
             Self::UnsupportedHttpVersion(version) => write!(f, "{version}"),
             Self::TooManyItems => write!(f, "The request contains more items than expected"),
+            Self::InvalidHeader(m) => match m {
+                HeaderParserError::ConflictingBodyFraming => {
+                    write!(f, "Request includes Content-Length and Transfer-Coding header at same time.")
+                },
+                HeaderParserError::InvalidTransferEncoding(v) => {
+                     write!(f, "Encoding is not supported: {v}")
+                }
+            }
         }
     }
 }

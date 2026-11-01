@@ -6,7 +6,7 @@ use std::io::{BufRead, BufReader, Read, Write};
 use http_core::Method;
 use http_core::request::{HttpVersion, RequestLine};
 
-use crate::error::ParserErr;
+use crate::error::{HeaderParserError, ParserErr};
 use crate::helpers::find_line;
 use crate::ParserState;
 
@@ -112,6 +112,32 @@ where
 
             break Ok(ParserState::Complete(req_start_line));
         }
+    }
+}
+
+pub(crate) enum BodyProcessMethod {
+    TransferCoding,
+    ContentLength,
+    None 
+}
+
+pub(crate) fn validate_body_header(
+    headers: &Option<HashMap<String, String>>
+) -> Result<BodyProcessMethod, ParserErr> {
+    match headers {
+        Some(headers) => {
+            let is_transfer = headers.contains_key("Transfer-Coding");
+            let is_content = headers.contains_key("Content-Length");
+
+            if is_content && is_transfer {
+                return Err(ParserErr::InvalidHeader(HeaderParserError::ConflictingBodyFraming))
+            }
+
+            if is_content { return Ok(BodyProcessMethod::ContentLength) }
+
+            return Ok(BodyProcessMethod::TransferCoding)
+        },
+        None => Ok(BodyProcessMethod::None)
     }
 }
 
