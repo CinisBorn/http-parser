@@ -6,12 +6,13 @@ mod header_section;
 use http_core::request::Request;
 use std::io::{BufReader, Read, Write};
 
-use crate::error::ParserErr;
 use crate::ParserState;
+use crate::error::ParserErr;
 use crate::request::body::decode_chunked_body;
-use crate::request::header_section::validate_body_header;
 
 use body::read_body;
+use body::check;
+
 use header_section::parse_headers;
 use header_section::parse_req_line;
 
@@ -33,30 +34,36 @@ where
         return Ok(ParserState::ConnectionClosed);
     };
 
-    let method = validate_body_header(&headers);
+    let method = check::body_framing_method(&headers);
 
     match method {
-        Ok(body_method) => {
-            match body_method {
-                header_section::BodyProcessMethod::ContentLength => {
-                    let ParserState::Complete(body) = read_body(&mut reader, headers.as_ref())? else {
-                        return Ok(ParserState::ConnectionClosed);
-                    };
-                    
-                    return Ok(ParserState::Complete(Request::new(start_line, headers, body)))
-                },
-                header_section::BodyProcessMethod::TransferCoding => {
-                    let ParserState::Complete(body) = decode_chunked_body(&mut reader, headers.as_ref())? else {
-                        return Ok(ParserState::ConnectionClosed)
-                    };
-                    
-                    return Ok(ParserState::Complete(Request::new(start_line, headers, body)))
-                },
-                header_section::BodyProcessMethod::None => {
-                    return Ok(ParserState::Complete(Request::new(start_line, headers, None)))
-                }
+        Ok(body_method) => match body_method {
+            check::BodyProcessMethod::ContentLength => {
+                let body = match read_body(&mut reader, headers.as_ref())? {
+                    ParserState::Complete(value) => value,
+                    ParserState::ConnectionClosed => return Ok(ParserState::ConnectionClosed)
+                };
+                
+                Ok(ParserState::Complete(Request::new(
+                    start_line, headers, body,
+                )))
+            },
+            check::BodyProcessMethod::TransferCoding => {
+                let body = match decode_chunked_body(&mut reader, headers.as_ref())? {
+                    ParserState::Complete(value) => value,
+                    ParserState::ConnectionClosed => return Ok(ParserState::ConnectionClosed)
+                };
+
+                Ok(ParserState::Complete(Request::new(
+                    start_line, headers, body,
+                )))
+            },
+            check::BodyProcessMethod::None => {
+                Ok(ParserState::Complete(Request::new(
+                    start_line, headers, None,
+                )))
             }
         },
-        Err(e) => Err(e)
+        Err(e) => Err(e),
     }
 }

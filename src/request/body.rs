@@ -7,6 +7,8 @@ use crate::error::{HeaderParserError, ParserErr};
 use crate::ParserState;
 use crate::helpers::find_line;
 
+pub(crate) mod check;
+
 pub(crate) fn read_body<T>(
     src: &mut BufReader<T>,
     headers: Option<&HashMap<String, String>>,
