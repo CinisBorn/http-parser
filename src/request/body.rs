@@ -52,10 +52,10 @@ where
 /// 
 /// # Errors
 /// 
-/// Returns an error if the `Transfer-Coding` header from request
+/// Returns an error if the `Transfer-Encoding` header from request
 /// is not "chunked". It can change in the future.
 /// 
-/// If the value of `Transfer-Coding`  is not UTF-8 or if the value
+/// If the value of `Transfer-Encoding`  is not UTF-8 or if the value
 /// includes  additional characters such as trailing whitespaces an error is returned. 
 /// 
 ///  Returns an *I/O* error if a [`Read`] error is triggered.
@@ -67,7 +67,7 @@ pub fn decode_chunked_body<T: Read>(
         return Ok(ParserState::Complete(None))
     };
 
-    let Some(coding) = headers.get("Transfer-Coding") else {
+    let Some(coding) = headers.get("Transfer-Encoding") else {
         return Ok(ParserState::Complete(None))
     };
 
@@ -124,7 +124,7 @@ mod parse_chunked_body {
         let input = b"5\r\nHello\r\n6\r\n World\r\n0\r\n\r\n";
         let mut headers = HashMap::new();
 
-        headers.insert("Transfer-Coding".to_string(), "chunked".to_string());
+        headers.insert("Transfer-Encoding".to_string(), "chunked".to_string());
         
         let mut stream = mock_stream(input);
 

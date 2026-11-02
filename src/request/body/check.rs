@@ -1,30 +1,32 @@
+use crate::error::{HeaderParserError, ParserErr};
 use std::collections::HashMap;
-use crate::error::{ParserErr, HeaderParserError};
 
 pub(crate) enum BodyProcessMethod {
     TransferCoding,
     ContentLength,
-    None 
+    None,
 }
 
 pub(crate) fn body_framing_method(
-    headers: Option<&HashMap<String, String>>
+    headers: Option<&HashMap<String, String>>,
 ) -> Result<BodyProcessMethod, ParserErr> {
     if let Some(headers) = headers {
-        let is_transfer = headers.contains_key("Transfer-Coding");
+        let is_transfer = headers.contains_key("Transfer-Encoding");
         let is_content = headers.contains_key("Content-Length");
 
         if is_content && is_transfer {
-            return Err(ParserErr::InvalidHeader(HeaderParserError::ConflictingBodyFraming))
+            return Err(ParserErr::InvalidHeader(
+                HeaderParserError::ConflictingBodyFraming,
+            ));
         }
 
-        if is_content { 
-            return Ok(BodyProcessMethod::ContentLength)
-        } else { 
-            return Ok(BodyProcessMethod::TransferCoding) 
+        if is_content {
+            return Ok(BodyProcessMethod::ContentLength);
+        } else {
+            return Ok(BodyProcessMethod::TransferCoding);
         }
     } else {
-        return Ok(BodyProcessMethod::None)
+        return Ok(BodyProcessMethod::None);
     }
 }
 
@@ -40,7 +42,7 @@ mod framing {
 
         match body_framing_method(Some(headers).as_ref()).unwrap() {
             BodyProcessMethod::ContentLength => assert!(true),
-            _ => assert!(false)
+            _ => assert!(false),
         }
     }
 
@@ -50,7 +52,7 @@ mod framing {
         let mut headers = HashMap::new();
 
         headers.insert("Content-Length".to_string(), "12".to_string());
-        headers.insert("Transfer-Coding".to_string(), "chunked".to_string());
+        headers.insert("Transfer-Encoding".to_string(), "chunked".to_string());
 
         body_framing_method(Some(headers).as_ref()).unwrap();
     }
@@ -59,9 +61,9 @@ mod framing {
     fn header_not_exists() {
         let res = body_framing_method(None).unwrap();
 
-        match res  {
+        match res {
             BodyProcessMethod::None => assert!(true),
-            _ => assert!(false)
+            _ => assert!(false),
         }
     }
 }

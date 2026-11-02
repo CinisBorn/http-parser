@@ -33,7 +33,7 @@ impl std::fmt::Display for ParserErr {
             Self::TooManyItems => write!(f, "The request contains more items than expected"),
             Self::InvalidHeader(m) => match m {
                 HeaderParserError::ConflictingBodyFraming => {
-                    write!(f, "Request includes Content-Length and Transfer-Coding header at same time.")
+                    write!(f, "Request includes Content-Length and Transfer-Encoding header at same time.")
                 },
                 HeaderParserError::InvalidTransferEncoding(v) => {
                      write!(f, "Encoding is not supported: {v}")
