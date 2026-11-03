@@ -8,7 +8,7 @@ use http_core::request::{HttpVersion, RequestLine};
 
 use crate::error::ParserErr;
 use crate::helpers::find_line;
-use crate::ParserState;
+use crate::{ParserConfig, ParserState};
 
 pub(crate) fn parse_headers<T>(
     src: &mut BufReader<T>,
@@ -61,7 +61,10 @@ where
     }
 }
 
-pub(crate) fn parse_req_line<T>(src: &mut BufReader<T>) -> Result<ParserState<RequestLine>, ParserErr> 
+pub(crate) fn parse_req_line<T>(
+    src: &mut BufReader<T>, 
+    config:  &ParserConfig
+) -> Result<ParserState<RequestLine>, ParserErr> 
 where 
     T: Read
 {
@@ -70,6 +73,10 @@ where
 
         if buf.is_empty() {
             return Ok(ParserState::ConnectionClosed);
+        }
+
+        if buf.len() > config.request_line_max_size() {
+            return Err(ParserErr::TooLong)
         }
 
         if let Some(pos) = find_line(buf) {
@@ -132,13 +139,15 @@ mod request_line {
     #[test]
     fn parse_request_line() {
         let mut src = mock_reader(b"GET / HTTP/1.1\r\n\r\n");
-        parse_req_line(&mut src).unwrap();
+        let config = ParserConfig::default();
+        parse_req_line(&mut src, &config).unwrap();
     }
 
     #[test]
     fn parsed_content_is_correct() {
         let mut src = mock_reader(b"GET / HTTP/1.1\r\n\r\n");
-        let res = match parse_req_line(&mut src).unwrap() {
+        let config = ParserConfig::default();
+        let res = match parse_req_line(&mut src, &config).unwrap() {
             ParserState::Complete(res) => res,
             ParserState::ConnectionClosed => panic!("Connection Closed")
         };
@@ -159,7 +168,8 @@ mod request_line {
     #[test]
     fn unsupported_http_version_fail() -> Result<(), ()> {
         let mut src = mock_reader(b"GET / HTTP/2.0\r\n\r\n");
-        let res = parse_req_line(&mut src).err().unwrap();
+        let config = ParserConfig::default();
+        let res = parse_req_line(&mut src, &config).err().unwrap();
 
         match res {
             ParserErr::UnsupportedHttpVersion(_) => return Ok(()),
@@ -170,7 +180,8 @@ mod request_line {
     #[test]
     fn invalid_input_fail() -> Result<(), ()> {
         let mut src = mock_reader(b"GET HTTP/2.0\r\n\r\n");
-        let res = parse_req_line(&mut src).err().unwrap();
+        let config = ParserConfig::default();
+        let res = parse_req_line(&mut src, &config).err().unwrap();
 
         match res {
             ParserErr::InvalidInput(_) => Ok(()),
@@ -181,12 +192,24 @@ mod request_line {
     #[test]
     fn too_many_items_fail() -> Result<(), ()> {
         let mut src = mock_reader(b"GET / HTTP/2.0 abc\r\n\r\n");
-        let res = parse_req_line(&mut src).err().unwrap();
+        let config = ParserConfig::default();
+        let res = parse_req_line(&mut src, &config).err().unwrap();
 
         match res {
             ParserErr::TooManyItems => Ok(()),
             _ => Err(()),
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn fail_if_max_size_is_exceeded() {
+        let mut reader = mock_reader(b"GET /test HTTP/1.1\r\n\r\n");
+        let mut config = ParserConfig::default();
+
+        config.set_request_line_max_size(1);
+        
+        let _ = parse_req_line(&mut reader, &config).unwrap();
     }
 }
 
@@ -210,6 +233,7 @@ mod headers_parsing {
             b"Host: 127.0.0.1\r\n\
             \r\n",
         );
+
         let res = match parse_headers(&mut src).unwrap() {
             ParserState::Complete(res) => res.unwrap(),
             ParserState::ConnectionClosed => panic!("Connection was closed") 
@@ -221,6 +245,7 @@ mod headers_parsing {
     #[test]
     fn request_without_headers_pass() -> Result<(), ()> {
         let mut src = mock_reader(b"\r\n");
+
         let res = match parse_headers(&mut src).unwrap() {
             ParserState::Complete(res) => res,
             ParserState::ConnectionClosed => panic!("Connection was closed") 
@@ -235,6 +260,7 @@ mod headers_parsing {
     #[test]
     fn bad_formatted_headers_fail() -> Result<(), ()> {
         let mut src = mock_reader(b"host 127.0.0.1\r\n\r\n");
+        
         let res = parse_headers(&mut src).unwrap_err();
 
         match res {
@@ -243,3 +269,4 @@ mod headers_parsing {
         }
     }
 }
+

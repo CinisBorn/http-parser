@@ -6,6 +6,7 @@ mod header_section;
 use http_core::request::Request;
 use std::io::{BufReader, Read, Write};
 
+use crate::ParserConfig;
 use crate::ParserState;
 use crate::error::ParserErr;
 use crate::request::body::decode_chunked_body;
@@ -21,13 +22,14 @@ use header_section::parse_req_line;
 /// # Errors
 ///
 /// Returns a [`ParserErr`] if it's not possible to parse the request.
-pub fn parse_req<T>(src: &mut T) -> Result<ParserState<Request>, ParserErr>
+pub fn parse_req<T>(src: &mut T, config: Option<ParserConfig>) -> Result<ParserState<Request>, ParserErr>
 where
     T: Read + Write,
 {
     let mut reader = BufReader::new(src);
-
-    let ParserState::Complete(start_line) = parse_req_line(&mut reader)? else {
+    let config = config.unwrap_or_default();
+    
+    let ParserState::Complete(start_line) = parse_req_line(&mut reader, &config)? else {
         return Ok(ParserState::ConnectionClosed);
     };
     let ParserState::Complete(headers) = parse_headers(&mut reader)? else {

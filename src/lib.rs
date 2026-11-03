@@ -17,15 +17,18 @@
 //! }
 //!
 //! let mut stream = mock_tcp_stream(b"GET / HTTP/1.1");
-//! parse_req(&mut stream);
+//! parse_req(&mut stream, None);
 //! ```
 
 pub mod error;
 mod helpers;
 mod request;
+mod policy;
 pub mod response;
 
 pub use request::parse_req;
+
+use crate::policy::MAX_REQUEST_LINE_SIZE;
 
 #[derive(Debug)]
 /// Tracks the parsing process. 
@@ -37,4 +40,33 @@ pub enum ParserState<T> {
     Complete(T),
     /// The client closed the connection.
     ConnectionClosed
+}
+
+/// Configurations for the parsing process. 
+/// 
+/// You can change the parsing behavior process setting configurations. 
+/// It includes, but it's not limited to: Policy of max size.
+pub struct ParserConfig {
+    req_line_max_size: usize,
+}
+
+impl Default  for ParserConfig {
+    fn default() -> Self {
+        Self {
+            req_line_max_size: MAX_REQUEST_LINE_SIZE
+        }
+    }
+}
+
+impl ParserConfig {
+    /// Sets a request line max size. By default, the max size is `8kib` .
+    /// See [`MAX_REQUEST_LINE_SIZE`].
+    pub fn set_request_line_max_size(&mut self, value: usize) {
+        self.req_line_max_size = value
+    }
+
+    /// Returns  the current request line max size.
+    pub fn request_line_max_size(&self) -> usize {
+        self.req_line_max_size
+    }
 }
