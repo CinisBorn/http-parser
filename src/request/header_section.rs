@@ -27,12 +27,14 @@ where
             return Ok(ParserState::ConnectionClosed)
         }
 
-        dbg!(size);
-        
         if size > config.header_max_size() {
             return Err(ParserErr::TooLong)
         }
 
+        if size > config.number_of_headers() {
+            return Err(ParserErr::TooLong)
+        }
+        
         if let Some(pos) = find_line(buf) {
             let line = &buf[..pos].to_owned();
             size += line.len() + 2;
@@ -287,6 +289,20 @@ mod headers_parsing {
         
         config.set_header_max_size(1);
         
+        parse_headers(&mut src, &config).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn fail_if_max_num_of_headers_exceed() {
+        let mut src = mock_reader(
+            b"Host: Localhost\r\n\
+            Test-Header: ops..\r\n\
+            \r\n"
+        );
+        let mut config = ParserConfig::default();
+
+        config.set_max_num_headers(1);
         parse_headers(&mut src, &config).unwrap();
     }
 }
