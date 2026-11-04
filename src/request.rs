@@ -51,7 +51,7 @@ where
                 )))
             },
             check::BodyProcessMethod::TransferCoding => {
-                let body = match decode_chunked_body(&mut reader, headers.as_ref())? {
+                let body = match decode_chunked_body(&mut reader, headers.as_ref(), &config)? {
                     ParserState::Complete(value) => value,
                     ParserState::ConnectionClosed => return Ok(ParserState::ConnectionClosed)
                 };

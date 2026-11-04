@@ -67,7 +67,9 @@ where
 ///  Returns an *I/O* error if a [`Read`] error is triggered.
 pub fn decode_chunked_body<T: Read>(
     src: &mut BufReader<T>,
-    headers: Option<&HashMap<String, String>>,)
+    headers: Option<&HashMap<String, String>>,
+    config: &ParserConfig
+)
 -> Result<ParserState<Option<String>>, ParserErr>{
     let Some(headers) = headers else {
         return Ok(ParserState::Complete(None))
@@ -84,6 +86,7 @@ pub fn decode_chunked_body<T: Read>(
     }
 
     let mut chunks = vec![];
+    let mut length: usize = 0;
 
     loop {
         let available_content = src.fill_buf().map_err(|e| ParserErr::Io(e))?;
@@ -108,6 +111,12 @@ pub fn decode_chunked_body<T: Read>(
     
         src.read_exact(&mut chunk[..size]).map_err(|e|  ParserErr::Io(e))?;
 
+        length += chunk.len() + 2;
+
+        if length > config.max_body_size() {
+            return Err(ParserErr::TooLong)
+        }
+        
         chunks.append(&mut chunk);
         src.consume(2);
     }
@@ -134,7 +143,11 @@ mod parse_chunked_body {
         
         let mut stream = mock_stream(input);
 
-        let res = decode_chunked_body(&mut stream, Some(&headers)).unwrap();
+        let res = decode_chunked_body(
+            &mut stream, 
+            Some(&headers),
+            &ParserConfig::default()
+        ).unwrap();
 
         match res {
             ParserState::Complete(k) => {
@@ -143,6 +156,23 @@ mod parse_chunked_body {
             },
             _ => panic!("Oh my glob")
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn max_size_exceeded() {
+        let mut src = mock_stream(b"5\r\nhello\r\n\r\n");
+        let mut config = ParserConfig::default();
+        let mut headers = HashMap::new();
+
+        config.set_max_body_size(11);
+        
+        headers.insert(
+            "Transfer-Encoding".to_string(), 
+            "chunked".to_string()
+        );
+        
+        decode_chunked_body(&mut src, Some(&headers), &config).unwrap();
     }
 }
 
