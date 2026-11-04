@@ -12,22 +12,32 @@ use crate::{ParserConfig, ParserState};
 
 pub(crate) fn parse_headers<T>(
     src: &mut BufReader<T>,
+    config: &ParserConfig
 ) -> Result<ParserState<Option<HashMap<String, String>>>, ParserErr>
 where
     T: Read + Write,
 {
     let mut headers = HashMap::new();
-
+    let mut size: usize = 0;
+    
     loop {
         let buf = src.fill_buf().map_err(|e| ParserErr::Io(e))?;
-
+      
         if buf.is_empty() {
             return Ok(ParserState::ConnectionClosed)
         }
 
+        dbg!(size);
+        
+        if size > config.header_max_size() {
+            return Err(ParserErr::TooLong)
+        }
+
         if let Some(pos) = find_line(buf) {
             let line = &buf[..pos].to_owned();
-            src.consume(line.len() + 2);
+            size += line.len() + 2;
+     
+            src.consume(size);
 
             if line.is_empty() {
                 if headers.is_empty() {
@@ -224,7 +234,7 @@ mod headers_parsing {
             \r\n",
         );
 
-        parse_headers(&mut src).unwrap();
+        parse_headers(&mut src, &ParserConfig::default()).unwrap();
     }
 
     #[test]
@@ -234,7 +244,7 @@ mod headers_parsing {
             \r\n",
         );
 
-        let res = match parse_headers(&mut src).unwrap() {
+        let res = match parse_headers(&mut src, &ParserConfig::default()).unwrap() {
             ParserState::Complete(res) => res.unwrap(),
             ParserState::ConnectionClosed => panic!("Connection was closed") 
         };
@@ -246,7 +256,7 @@ mod headers_parsing {
     fn request_without_headers_pass() -> Result<(), ()> {
         let mut src = mock_reader(b"\r\n");
 
-        let res = match parse_headers(&mut src).unwrap() {
+        let res = match parse_headers(&mut src, &ParserConfig::default()).unwrap() {
             ParserState::Complete(res) => res,
             ParserState::ConnectionClosed => panic!("Connection was closed") 
         };
@@ -261,12 +271,23 @@ mod headers_parsing {
     fn bad_formatted_headers_fail() -> Result<(), ()> {
         let mut src = mock_reader(b"host 127.0.0.1\r\n\r\n");
         
-        let res = parse_headers(&mut src).unwrap_err();
+        let res = parse_headers(&mut src, &ParserConfig::default()).unwrap_err();
 
         match res {
             ParserErr::InvalidInput(_) => Ok(()),
             _ => Err(()),
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn fail_if_max_size_exceed() {
+        let mut src = mock_reader(b"Host: localhost\r\n\r\n");
+        let mut config = ParserConfig::default();
+        
+        config.set_header_max_size(1);
+        
+        parse_headers(&mut src, &config).unwrap();
     }
 }
 

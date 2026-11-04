@@ -32,7 +32,7 @@ where
     let ParserState::Complete(start_line) = parse_req_line(&mut reader, &config)? else {
         return Ok(ParserState::ConnectionClosed);
     };
-    let ParserState::Complete(headers) = parse_headers(&mut reader)? else {
+    let ParserState::Complete(headers) = parse_headers(&mut reader, &config)? else {
         return Ok(ParserState::ConnectionClosed);
     };
 
