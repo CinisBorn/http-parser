@@ -91,7 +91,7 @@ pub fn decode_chunked_body<T: Read>(
     loop {
         let available_content = src.fill_buf().map_err(|e| ParserErr::Io(e))?;
         
-        let size = if let Some(pos) =  find_line(available_content) {
+        let chunk_size = if let Some(pos) =  find_line(available_content) {
             let content = &available_content[..pos].to_owned();
             src.consume(content.len() + 2);
 
@@ -103,13 +103,20 @@ pub fn decode_chunked_body<T: Read>(
             continue 
         };
 
-        if size == 0 {
-            return Ok(ParserState::Complete(Some(String::from_utf8(chunks).unwrap())));
-        }
+        if chunk_size == 0 {
+            let content = String::from_utf8(chunks);
+
+            if let Ok(content) = content {
+                return Ok(ParserState::Complete(Some(content)));
+            } else {
+                // "Empty string is purposeful"
+                return Err(ParserErr::InvalidInput("".to_string()));
+            }
+        };
         
-        let mut chunk = vec![0u8; size];
+        let mut chunk = vec![0u8; chunk_size];
     
-        src.read_exact(&mut chunk[..size]).map_err(|e|  ParserErr::Io(e))?;
+        src.read_exact(&mut chunk[..chunk_size]).map_err(|e|  ParserErr::Io(e))?;
 
         length += chunk.len() + 2;
 
