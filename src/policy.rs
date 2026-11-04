@@ -4,3 +4,5 @@ pub const MAX_REQUEST_LINE_SIZE: usize = 8 * 1024;
 pub const MAX_HEADER_SIZE: usize = 16 * 1024;
 /// Default number of headers.
 pub const MAX_HEADER_COUNT: usize = 100;
+/// Default max body size value.
+pub const MAX_BODY_SIZE: usize = 10 * 1024 * 1024;

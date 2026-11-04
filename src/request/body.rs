@@ -1,10 +1,10 @@
 //! Tools for body parsing.
 
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader, Read, Write};
+use std::io::{BufRead, BufReader, Read};
 
 use crate::error::{HeaderParserError, ParserErr};
-use crate::ParserState;
+use crate::{ParserConfig, ParserState};
 use crate::helpers::find_line;
 
 pub(crate) mod check;
@@ -12,10 +12,12 @@ pub(crate) mod check;
 pub(crate) fn read_body<T>(
     src: &mut BufReader<T>,
     headers: Option<&HashMap<String, String>>,
+    config: &ParserConfig
 ) -> Result<ParserState<Option<String>>, ParserErr>
 where
-    T: Read + Write,
+    T: Read,
 {
+
     let Some(headers) = headers else {
         return Ok(ParserState::Complete(None));
     };
@@ -26,6 +28,10 @@ where
     let Ok(content_length) = content_length.parse::<usize>() else {
         return Err(ParserErr::InvalidInput(content_length.to_owned()));
     };
+
+    if content_length > config.max_body_size() {
+        return Err(ParserErr::TooLong)
+    }
 
     let available_data = src.fill_buf().map_err(|e| ParserErr::Io(e))?;
     let from_buffer = available_data.len().min(content_length);
@@ -137,5 +143,35 @@ mod parse_chunked_body {
             },
             _ => panic!("Oh my glob")
         }
+    }
+}
+
+#[cfg(test)]
+mod body_parsing {
+    use super::*;
+    use std::io::Cursor;
+    
+    fn mock_stream(input: &[u8]) -> BufReader<Cursor<&[u8]>> {
+        let mut cursor = Cursor::new(input);
+        cursor.set_position(0);
+    
+        BufReader::new(cursor)
+    }
+    
+    #[test]
+    #[should_panic] 
+    fn fail_if_max_size_is_exceeded() {
+        let mut src = mock_stream(b"lorem ipsom dolor");
+        let mut headers = HashMap::new();
+        let mut config = ParserConfig::default();
+
+        config.set_max_body_size(5);
+
+        headers.insert(
+            "Content-length".to_string(), 
+            "17".to_string()
+        );
+        
+        read_body(&mut src, Some(&headers), &config).unwrap();
     }
 }

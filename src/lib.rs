@@ -28,7 +28,7 @@ pub mod response;
 
 pub use request::parse_req;
 
-use crate::policy::{MAX_HEADER_COUNT, MAX_HEADER_SIZE, MAX_REQUEST_LINE_SIZE};
+use crate::policy::{MAX_BODY_SIZE, MAX_HEADER_COUNT, MAX_HEADER_SIZE, MAX_REQUEST_LINE_SIZE};
 
 #[derive(Debug)]
 /// Tracks the parsing process.
@@ -50,6 +50,7 @@ pub struct ParserConfig {
     req_line_max_size: usize,
     max_header_size: usize,
     max_num_header: usize,
+    max_body_size: usize
 }
 
 impl Default for ParserConfig {
@@ -58,6 +59,7 @@ impl Default for ParserConfig {
             req_line_max_size: MAX_REQUEST_LINE_SIZE,
             max_header_size: MAX_HEADER_SIZE,
             max_num_header: MAX_HEADER_COUNT,
+            max_body_size: MAX_BODY_SIZE
         }
     }
 }
@@ -91,5 +93,15 @@ impl ParserConfig {
     /// Returns the max  number of headers.
     pub fn number_of_headers(&self) -> usize {
         self.max_num_header 
+    }
+
+    /// Sets the max body size from a request. 
+    pub fn set_max_body_size(&mut self, value: usize) {
+        self.max_body_size = value
+    }
+    
+    /// Returns the max  number of headers.
+    pub fn max_body_size(&self) -> usize {
+        self.max_body_size 
     }
 }

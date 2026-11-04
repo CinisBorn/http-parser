@@ -41,7 +41,7 @@ where
     match method {
         Ok(body_method) => match body_method {
             check::BodyProcessMethod::ContentLength => {
-                let body = match read_body(&mut reader, headers.as_ref())? {
+                let body = match read_body(&mut reader, headers.as_ref(), &config)? {
                     ParserState::Complete(value) => value,
                     ParserState::ConnectionClosed => return Ok(ParserState::ConnectionClosed)
                 };
