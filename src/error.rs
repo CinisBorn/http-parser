@@ -40,6 +40,15 @@ pub enum ParserErr {
     InvalidTransferEncoding(String),
     /// Input exceed the specified max size. 
     TooLong,
+    /// The message body exceeded the max sized specified.
+    /// 
+    /// The size of body includes `CRLF` too. 
+    /// 
+    /// The caller may use the associated `usize` value as the response 
+    /// body of an HTTP response with a `413 Content Too Larger` status code.
+    /// 
+    /// See more about max size configuration [`ParserConfig`].
+    ContentTooLarge(usize),
     /// The request contains more items than expected.
     TooManyItems,
 }
@@ -58,13 +67,15 @@ impl std::fmt::Display for ParserErr {
                     or invalid coding: {m}"
                 )
             },
-            ParserErr::ConflictingBodyFraming => {
+            Self::ConflictingBodyFraming => {
                 write!(f, "The HTTP request contains both\
                     Content-Length and Transfer-Encoding\
                     headers"
                 )
+            },
+            Self::ContentTooLarge(i) => {
+                write!(f, "The message body exceeded the max size: {i}")
             }
-            
         }
     }
 }

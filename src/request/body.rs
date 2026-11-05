@@ -30,7 +30,7 @@ where
     })?;
 
     if content_length > config.max_body_size() {
-        return Err(ParserErr::TooLong)
+        return Err(ParserErr::ContentTooLarge(config.max_body_size()))
     }
 
     let available_data = src.fill_buf().map_err(|e| ParserErr::Io(e))?;
@@ -121,7 +121,7 @@ pub fn decode_chunked_body<T: Read>(
         length += chunk.len() + 2;
 
         if length > config.max_body_size() {
-            return Err(ParserErr::TooLong)
+            return Err(ParserErr::ContentTooLarge(config.max_body_size()))
         }
         
         chunks.append(&mut chunk);
