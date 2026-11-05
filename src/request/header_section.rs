@@ -56,17 +56,13 @@ where
             let field = &line[..colon_position];
             let value = &line[colon_position + 2..];
 
-            let Ok(field) = std::str::from_utf8(field) else {
-                return Err(ParserErr::InvalidInput(
-                    String::from_utf8(field.to_vec()).unwrap(),
-                ));
-            };
+            let field = std::str::from_utf8(field).map_err(|err| {
+                ParserErr::InvalidInput(err.to_string())
+            })?;
 
-            let Ok(value) = std::str::from_utf8(value) else {
-                return Err(ParserErr::InvalidInput(
-                    String::from_utf8(value.to_vec()).unwrap(),
-                ));
-            };
+            let value = std::str::from_utf8(value).map_err(|err| {
+                ParserErr::InvalidInput(err.to_string())
+            })?;
 
             headers.insert(field.to_owned(), value.to_owned());
         }
@@ -111,14 +107,17 @@ where
                 return Err(ParserErr::TooManyItems);
             }
 
-            let method = std::str::from_utf8(met)
-                .map_err(|_| ParserErr::InvalidInput("Invalid HTTP method encoding".into()))?;
+            let method = std::str::from_utf8(met).map_err(|err| {
+                ParserErr::InvalidInput(err.to_string())
+            })?;
+            
+            let target = std::str::from_utf8(tar).map_err(|err| {
+                ParserErr::InvalidInput(err.to_string())
+            })?;
 
-            let target = std::str::from_utf8(tar)
-                .map_err(|_| ParserErr::InvalidInput("Invalid target encoding".into()))?;
-
-            let version = std::str::from_utf8(ver)
-                .map_err(|_| ParserErr::InvalidInput("Invalid HTTP version encoding".into()))?;
+            let version = std::str::from_utf8(ver).map_err(|err| {
+                ParserErr::InvalidInput(err.to_string())
+            })?;
 
             let met = Method::map_method(method);
             let ver = HttpVersion::map(version);

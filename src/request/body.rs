@@ -25,9 +25,9 @@ where
         return Ok(ParserState::Complete(None));
     };
 
-    let Ok(content_length) = content_length.parse::<usize>() else {
-        return Err(ParserErr::InvalidInput(content_length.to_owned()));
-    };
+    let content_length = content_length.parse::<usize>().map_err(|err| {
+        ParserErr::InvalidInput(err.to_string())
+    })?;
 
     if content_length > config.max_body_size() {
         return Err(ParserErr::TooLong)
@@ -47,9 +47,9 @@ where
 
     src.consume(body.len());
 
-    let Ok(body_txt) = String::from_utf8(body) else {
-        return Err(ParserErr::InvalidInput(String::from("No Valid Input")));
-    };
+    let body_txt = String::from_utf8(body).map_err(|err| {
+        ParserErr::InvalidInput(err.to_string())
+    })?;
 
     Ok(ParserState::Complete(Some(body_txt)))
 }
@@ -95,7 +95,8 @@ pub fn decode_chunked_body<T: Read>(
             let content = &available_content[..pos].to_owned();
             src.consume(content.len() + 2);
 
-            let size = std::str::from_utf8(content).map_err(|e| ParserErr::InvalidInput(e.to_string()))?;
+            let size = std::str::from_utf8(content)
+                .map_err(|e| ParserErr::InvalidInput(e.to_string()))?;
             let size = usize::from_str_radix(size, 16).unwrap();
 
             size 
@@ -109,8 +110,9 @@ pub fn decode_chunked_body<T: Read>(
             if let Ok(content) = content {
                 return Ok(ParserState::Complete(Some(content)));
             } else {
-                // "Empty string is purposeful"
-                return Err(ParserErr::InvalidInput("".to_string()));
+                return Err(ParserErr::InvalidInput(
+                    "Invalid body message encoding".into()
+                ));
             }
         };
         
