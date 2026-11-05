@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::io::{BufRead, BufReader, Read};
 
-use crate::error::{HeaderParserError, ParserErr};
+use crate::error::ParserErr;
 use crate::{ParserConfig, ParserState};
 use crate::helpers::find_line;
 
@@ -80,9 +80,7 @@ pub fn decode_chunked_body<T: Read>(
     };
 
     if coding.as_str() != "chunked" {
-        return Err(ParserErr::InvalidHeader(
-            HeaderParserError::InvalidTransferEncoding(coding.to_owned())
-        ))
+        return Err(ParserErr::InvalidTransferEncoding(coding.to_owned()))
     }
 
     let mut chunks = vec![];

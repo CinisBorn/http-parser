@@ -1,4 +1,4 @@
-use crate::error::{HeaderParserError, ParserErr};
+use crate::error::ParserErr;
 use std::collections::HashMap;
 
 pub(crate) enum BodyProcessMethod {
@@ -15,9 +15,7 @@ pub(crate) fn body_framing_method(
         let is_content = headers.contains_key("Content-Length");
 
         if is_content && is_transfer {
-            return Err(ParserErr::InvalidHeader(
-                HeaderParserError::ConflictingBodyFraming,
-            ));
+            return Err(ParserErr::ConflictingBodyFraming);
         }
 
         if is_content {

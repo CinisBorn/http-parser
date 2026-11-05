@@ -23,18 +23,25 @@ pub enum ParserErr {
     /// The caller may use the associated `String` as the response body
     /// of an HTTP response with a `505 HTTP Version Not Supported` status code.
     UnsupportedHttpVersion(String),
-    /// The header contain invalid headers.
-    InvalidHeader(HeaderParserError),
+    /// The HTTP request contains both `Content-Length` and 
+    /// `Transfer-Encoding` headers.
+    /// 
+    /// The caller may use the associated `String` as the response body
+    /// of a HTTP response with `400 Bad Request` status code.
+    ConflictingBodyFraming,
+    /// The HTTP request contains an unsupported or 
+    /// invalid transfer coding.
+    ///
+    /// The parser currently supports only the `chunked` 
+    /// transfer coding.
+    /// 
+    /// The caller may use the associated `String` as the response body
+    /// of an HTTP response with a `501 Not Implement` status code.
+    InvalidTransferEncoding(String),
     /// Input exceed the specified max size. 
     TooLong,
     /// The request contains more items than expected.
     TooManyItems,
-}
-
-#[derive(Debug)]
-pub enum HeaderParserError {
-    ConflictingBodyFraming,
-    InvalidTransferEncoding(String)
 }
 
 impl std::error::Error for ParserErr {}
@@ -46,14 +53,18 @@ impl std::fmt::Display for ParserErr {
             Self::UnsupportedHttpVersion(version) => write!(f, "{version}"),
             Self::TooManyItems => write!(f, "The request contains more items than expected"),
             Self::TooLong => write!(f, ""),
-            Self::InvalidHeader(m) => match m {
-                HeaderParserError::ConflictingBodyFraming => {
-                    write!(f, "Request includes Content-Length and Transfer-Encoding header at same time.")
-                },
-                HeaderParserError::InvalidTransferEncoding(v) => {
-                     write!(f, "Encoding is not supported: {v}")
-                }
+            Self::InvalidTransferEncoding(m) => {
+                write!(f, "The HTTP request contains an unsupported\
+                    or invalid coding: {m}"
+                )
+            },
+            ParserErr::ConflictingBodyFraming => {
+                write!(f, "The HTTP request contains both\
+                    Content-Length and Transfer-Encoding\
+                    headers"
+                )
             }
+            
         }
     }
 }
