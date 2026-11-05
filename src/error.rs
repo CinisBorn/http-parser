@@ -7,7 +7,16 @@
 pub enum ParserErr {
     ///  A wrapper around of `std::io::Error`.
     Io(std::io::Error),
-    /// Unexpected input was found.
+    /// An invalid HTTP request. 
+    /// 
+    /// This variant indicates that the request contains malformed syntax, 
+    /// unsupported character encoding, or other invalid data.
+    /// 
+    /// The associated `String` contains more information about the cause of 
+    /// error.
+    /// 
+    /// The caller may use the associated `String` as the response body
+    /// of an HTTP response with a `400 Bad Request` status code.
     InvalidInput(String),
     /// The client made a request with an unsupported HTTP version.
     UnsupportedHttpVersion(String),
