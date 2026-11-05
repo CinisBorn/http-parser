@@ -38,8 +38,24 @@ pub enum ParserErr {
     /// The caller may use the associated `String` as the response body
     /// of an HTTP response with a `501 Not Implement` status code.
     InvalidTransferEncoding(String),
-    /// Input exceed the specified max size. 
-    TooLong,
+    /// The request exceeds the specied max size. 
+    /// 
+    /// `TooLong` may occur in these scenarios:
+    /// 
+    /// - The request line target exceeds the specified max size.
+    /// - The header exceeds the specified max size. 
+    /// 
+    /// Additional scenarios may be added in future versions of this crate.
+    /// 
+    /// This variant contains an associated `u16` representing the recommended 
+    /// HTTP status code for the error. Possible status code values:
+    /// 
+    /// - `414` Uri Too Long
+    /// - `431` Request Header Fields Too Large
+    /// 
+    /// The caller is responsible for using this status code when constructing
+    /// the HTTP response.
+    TooLong(u16),
     /// The message body exceeded the max sized specified.
     /// 
     /// The size of body includes `CRLF` too. 
@@ -83,7 +99,10 @@ impl std::fmt::Display for ParserErr {
                     Recommended HTTP status code: {code}"
                 )
             },
-            Self::TooLong => write!(f, ""),
+            Self::TooLong(code) => {
+                write!(f, "The request exceeds the specified max size.\
+                    Recommended HTTP status code: {code}")
+            },
             Self::InvalidTransferEncoding(m) => {
                 write!(f, "The HTTP request contains an unsupported\
                     or invalid coding: {m}"

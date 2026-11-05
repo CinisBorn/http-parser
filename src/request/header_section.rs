@@ -28,7 +28,7 @@ where
         }
 
         if size > config.header_max_size() {
-            return Err(ParserErr::TooLong)
+            return Err(ParserErr::TooLong(431))
         }
         
         if headers.len() >= config.number_of_headers() {
@@ -84,7 +84,7 @@ where
         }
 
         if buf.len() > config.request_line_max_size() {
-            return Err(ParserErr::TooLong)
+            return Err(ParserErr::TooLong(414))
         }
 
         if let Some(pos) = find_line(buf) {
