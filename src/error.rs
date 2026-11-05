@@ -18,7 +18,10 @@ pub enum ParserErr {
     /// The caller may use the associated `String` as the response body
     /// of an HTTP response with a `400 Bad Request` status code.
     InvalidInput(String),
-    /// The client made a request with an unsupported HTTP version.
+    /// The HTTP version used in the request is not supported.
+    ///
+    /// The caller may use the associated `String` as the response body
+    /// of an HTTP response with a `505 HTTP Version Not Supported` status code.
     UnsupportedHttpVersion(String),
     /// The header contain invalid headers.
     InvalidHeader(HeaderParserError),
