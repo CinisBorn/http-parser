@@ -30,9 +30,9 @@ where
         if size > config.header_max_size() {
             return Err(ParserErr::TooLong)
         }
-
-        if size > config.number_of_headers() {
-            return Err(ParserErr::TooLong)
+        
+        if headers.len() >= config.number_of_headers() {
+            return Err(ParserErr::TooManyItems(431))
         }
         
         if let Some(pos) = find_line(buf) {
@@ -104,7 +104,7 @@ where
                 .ok_or(ParserErr::InvalidInput("Version not Found".into()))?;
 
             if items.next().is_some() {
-                return Err(ParserErr::TooManyItems);
+                return Err(ParserErr::TooManyItems(400));
             }
 
             let method = std::str::from_utf8(met).map_err(|err| {
@@ -207,7 +207,7 @@ mod request_line {
         let res = parse_req_line(&mut src, &config).err().unwrap();
 
         match res {
-            ParserErr::TooManyItems => Ok(()),
+            ParserErr::TooManyItems(_) => Ok(()),
             _ => Err(()),
         }
     }

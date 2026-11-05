@@ -49,8 +49,26 @@ pub enum ParserErr {
     /// 
     /// See more about max size configuration [`ParserConfig`].
     ContentTooLarge(usize),
-    /// The request contains more items than expected.
-    TooManyItems,
+    /// The HTTP request contains more items than the server allows.
+    ///
+    /// `TooManyItems` may occur in the following scenarios:
+    ///
+    /// - The request line does not contain exactly three components.
+    /// - The number of header fields exceeds the configured limit (100 by default).
+    ///
+    /// Additional scenarios may be added in future versions of this crate.
+    ///
+    /// This variant contains an associated `u16` representing the recommended
+    /// HTTP status code for the error.
+    ///
+    /// Possible status codes include:
+    ///
+    /// - 400 Bad Request
+    /// - 431 Request Header Fields Too Large
+    ///
+    /// The caller is responsible for using this status code when constructing
+    /// the HTTP response.
+    TooManyItems(u16),
 }
 
 impl std::error::Error for ParserErr {}
@@ -60,7 +78,11 @@ impl std::fmt::Display for ParserErr {
             ParserErr::Io(m) => write!(f, "{m}"),
             ParserErr::InvalidInput(s) => write!(f, "Unexpected input: {s}"),
             Self::UnsupportedHttpVersion(version) => write!(f, "{version}"),
-            Self::TooManyItems => write!(f, "The request contains more items than expected"),
+            Self::TooManyItems(code) => {
+                write!(f, "The request contains more items than specified.\
+                    Recommended HTTP status code: {code}"
+                )
+            },
             Self::TooLong => write!(f, ""),
             Self::InvalidTransferEncoding(m) => {
                 write!(f, "The HTTP request contains an unsupported\
