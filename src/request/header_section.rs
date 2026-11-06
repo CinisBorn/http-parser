@@ -37,9 +37,10 @@ where
         
         if let Some(pos) = find_line(buf) {
             let line = &buf[..pos].to_owned();
-            size += line.len() + 2;
-     
-            src.consume(size);
+            let length = line.len() + 2;
+            
+            size += length;
+            src.consume(length);
 
             if line.is_empty() {
                 if headers.is_empty() {
@@ -303,6 +304,18 @@ mod headers_parsing {
 
         config.set_max_num_headers(1);
         parse_headers(&mut src, &config).unwrap();
+    }
+
+    #[test]
+    fn multiple_headers() {
+        let mut src = mock_reader(
+            b"Host: Localhost\r\n\
+            Connection: close\r\n\
+            Content-Length: 10\r\n\
+            It: should work\r\n\r\n"
+        );
+
+        parse_headers(&mut src, &ParserConfig::default()).unwrap();
     }
 }
 
