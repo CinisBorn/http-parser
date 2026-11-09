@@ -77,21 +77,26 @@ pub(crate) fn parse_req_line<T>(
 where 
     T: Read
 {
+    let mut size: usize = 0;
+    
     loop {
         let buf = src.fill_buf().map_err(|e| ParserErr::Io(e))?;
 
         if buf.is_empty() {
             return Ok(ParserState::ConnectionClosed);
         }
-
-        if buf.len() > config.request_line_max_size() {
-            return Err(ParserErr::TooLong(414))
-        }
-
+        
         if let Some(pos) = find_line(buf) {
             let line = buf[..pos].to_owned();
-            src.consume(pos + 2);
+            let length = line.len() + 2;
+            
+            src.consume(length);
+            size += length;
 
+            if size > config.request_line_max_size() {
+                return Err(ParserErr::TooLong(414))
+            }
+            
             let mut items = line.split(|byte| *byte == b' ');
 
             let met = items
