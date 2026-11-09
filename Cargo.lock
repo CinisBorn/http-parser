@@ -9,7 +9,7 @@ source = "git+https://github.com/CinisBorn/http-core?tag=v0.2.0#badd00e28064c0c4
 
 [[package]]
 name = "http-parser"
-version = "0.3.1"
+version = "0.4.0"
 dependencies = [
  "http-core",
 ]
