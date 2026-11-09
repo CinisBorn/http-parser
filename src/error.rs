@@ -1,6 +1,8 @@
 //! Parser errors
 //!
 //! This module provides error types and utilities for parser error handling.
+#[cfg(feature = "response-error")]
+use http_core::response::{Response, ResponseData, StatusCode};
 
 /// The parser errors
 #[derive(Debug)]
@@ -85,6 +87,52 @@ pub enum ParserErr {
     /// The caller is responsible for using this status code when constructing
     /// the HTTP response.
     TooManyItems(u16),
+}
+
+#[cfg(feature = "response-error")]
+impl ParserErr {
+    pub fn new_response_err(&self) -> Response {
+        use std::io::ErrorKind;
+        use StatusCode::{
+            RequestTimeout, 
+            BadRequest,
+            ContentTooLarge,
+            NotImplemented,
+            RequestHeaderFieldsTooLarge,
+            UriTooLong,
+            HttpVersionNotSupported,
+        };
+        
+        let mut response = Response::new();
+
+        match self {
+            Self::Io(err) => match err.kind() {
+                ErrorKind::WouldBlock => response.set_status(RequestTimeout),
+                ErrorKind::TimedOut => response.set_status(RequestTimeout),
+                _ => response.set_status(BadRequest),
+            },
+            Self::TooLong(code) => {
+                match code {
+                    414 => response.set_status(UriTooLong),
+                    431 => response.set_status(RequestHeaderFieldsTooLarge),
+                    _ => response.set_status(BadRequest),
+                }
+            },
+            Self::TooManyItems(code) => {
+                match code {
+                    431 => response.set_status(RequestHeaderFieldsTooLarge),
+                    _ => response.set_status(BadRequest),
+                }
+            },
+            Self::InvalidTransferEncoding(_) => response.set_status(NotImplemented),
+            Self::UnsupportedHttpVersion(_) => response.set_status(HttpVersionNotSupported),
+            Self::ConflictingBodyFraming => response.set_status(BadRequest),
+            Self::ContentTooLarge(_) => response.set_status(ContentTooLarge),
+            Self::InvalidInput(_) => response.set_status(BadRequest),   
+        }
+
+        response
+    }
 }
 
 impl std::error::Error for ParserErr {}
