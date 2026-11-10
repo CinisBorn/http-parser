@@ -65,7 +65,7 @@ where
                 ParserErr::InvalidInput(err.to_string())
             })?;
 
-            headers.insert(field.to_owned(), value.to_owned());
+            headers.insert(field.to_lowercase(), value.to_owned());
         }
     }
 }
@@ -256,7 +256,7 @@ mod headers_parsing {
             ParserState::ConnectionClosed => panic!("Connection was closed") 
         };
         
-        assert_eq!(res.get("Host").unwrap(), "127.0.0.1");
+        assert_eq!(res.get("host").unwrap(), "127.0.0.1");
     }
 
     #[test]

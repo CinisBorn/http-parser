@@ -11,8 +11,8 @@ pub(crate) fn body_framing_method(
     headers: Option<&HashMap<String, String>>,
 ) -> Result<BodyProcessMethod, ParserErr> {
     if let Some(headers) = headers {
-        let is_transfer = headers.contains_key("Transfer-Encoding");
-        let is_content = headers.contains_key("Content-Length");
+        let is_transfer = headers.contains_key("transfer-encoding");
+        let is_content = headers.contains_key("content-length");
 
         if is_content && is_transfer {
             return Err(ParserErr::ConflictingBodyFraming);
@@ -36,7 +36,7 @@ mod framing {
     fn return_correct_framing_method() {
         let mut headers = HashMap::new();
 
-        headers.insert("Content-Length".to_string(), "12".to_string());
+        headers.insert("content-length".to_string(), "12".to_string());
 
         match body_framing_method(Some(headers).as_ref()).unwrap() {
             BodyProcessMethod::ContentLength => assert!(true),
@@ -49,8 +49,15 @@ mod framing {
     fn conflict_is_error() {
         let mut headers = HashMap::new();
 
-        headers.insert("Content-Length".to_string(), "12".to_string());
-        headers.insert("Transfer-Encoding".to_string(), "chunked".to_string());
+        headers.insert(
+            "Content-Length".to_lowercase(), 
+            "12".to_string()
+        );
+        
+        headers.insert(
+            "Transfer-Encoding".to_lowercase(), 
+            "chunked".to_string()
+        );
 
         body_framing_method(Some(headers).as_ref()).unwrap();
     }

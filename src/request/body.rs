@@ -21,7 +21,7 @@ where
     let Some(headers) = headers else {
         return Ok(ParserState::Complete(None));
     };
-    let Some(content_length) = headers.get("Content-length") else {
+    let Some(content_length) = headers.get("content-length") else {
         return Ok(ParserState::Complete(None));
     };
 
@@ -205,7 +205,7 @@ mod body_parsing {
         config.set_max_body_size(5);
 
         headers.insert(
-            "Content-length".to_string(), 
+            "Content-length".to_lowercase(), 
             "17".to_string()
         );
         
