@@ -128,7 +128,7 @@ fn insert_body(body: Option<&Vec<u8>>, serialize_body: bool) -> Vec<u8> {
     response.extend_from_slice(b"\r\n");
 
     if let Some(body) = body && serialize_body {
-        response.extend_from_slice(body.as_slice());
+        response.extend_from_slice(body);
     }
 
     response

@@ -13,14 +13,14 @@ pub(crate) fn read_body<T>(
     src: &mut BufReader<T>,
     headers: Option<&HashMap<String, String>>,
     config: &ParserConfig
-) -> Result<ParserState<Option<String>>, ParserErr>
+) -> Result<ParserState<Option<Vec<u8>>>, ParserErr>
 where
     T: Read,
 {
-
     let Some(headers) = headers else {
         return Ok(ParserState::Complete(None));
     };
+    
     let Some(content_length) = headers.get("content-length") else {
         return Ok(ParserState::Complete(None));
     };
@@ -47,11 +47,7 @@ where
 
     src.consume(body.len());
 
-    let body_txt = String::from_utf8(body).map_err(|err| {
-        ParserErr::InvalidInput(err.to_string())
-    })?;
-
-    Ok(ParserState::Complete(Some(body_txt)))
+    Ok(ParserState::Complete(Some(body)))
 }
 
 /// Decode and parses a chunked body.
@@ -70,7 +66,7 @@ pub fn decode_chunked_body<T: Read>(
     headers: Option<&HashMap<String, String>>,
     config: &ParserConfig
 )
--> Result<ParserState<Option<String>>, ParserErr>{
+-> Result<ParserState<Option<Vec<u8>>>, ParserErr>{
     let Some(headers) = headers else {
         return Ok(ParserState::Complete(None))
     };
@@ -103,15 +99,7 @@ pub fn decode_chunked_body<T: Read>(
         };
 
         if chunk_size == 0 {
-            let content = String::from_utf8(chunks);
-
-            if let Ok(content) = content {
-                return Ok(ParserState::Complete(Some(content)));
-            } else {
-                return Err(ParserErr::InvalidInput(
-                    "Invalid body message encoding".into()
-                ));
-            }
+            return Ok(ParserState::Complete(Some(chunks)));
         };
         
         let mut chunk = vec![0u8; chunk_size];
@@ -157,10 +145,7 @@ mod parse_chunked_body {
         ).unwrap();
 
         match res {
-            ParserState::Complete(k) => {
-                let vec = k.unwrap();
-                println!("res: {}", vec)
-            },
+            ParserState::Complete(k) => {k.unwrap();},
             _ => panic!("Oh my glob")
         }
     }

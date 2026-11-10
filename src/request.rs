@@ -52,8 +52,8 @@ where
                     ParserState::ConnectionClosed => return Ok(ParserState::ConnectionClosed)
                 };
                 
-                Ok(ParserState::Complete(Request::new(
-                    start_line, headers, body,
+                Ok(ParserState::Complete(
+                    Request::new(start_line, headers, body,
                 )))
             },
             check::BodyProcessMethod::TransferCoding => {
