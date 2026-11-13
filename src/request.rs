@@ -53,7 +53,7 @@ where
                 };
                 
                 Ok(ParserState::Complete(
-                    Request::new(start_line, headers, body,
+                    Request::build(start_line, headers, body,
                 )))
             },
             check::BodyProcessMethod::TransferCoding => {
@@ -62,12 +62,12 @@ where
                     ParserState::ConnectionClosed => return Ok(ParserState::ConnectionClosed)
                 };
 
-                Ok(ParserState::Complete(Request::new(
+                Ok(ParserState::Complete(Request::build(
                     start_line, headers, body,
                 )))
             },
             check::BodyProcessMethod::None => {
-                Ok(ParserState::Complete(Request::new(
+                Ok(ParserState::Complete(Request::build(
                     start_line, headers, None,
                 )))
             }

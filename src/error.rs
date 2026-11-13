@@ -103,7 +103,7 @@ impl ParserErr {
             HttpVersionNotSupported,
         };
         
-        let mut response = Response::new();
+        let mut response = Response::default();
 
         match self {
             Self::Io(err) => match err.kind() {

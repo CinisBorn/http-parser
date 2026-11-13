@@ -19,8 +19,8 @@ impl SerializeResponse for Response {}
 pub trait SerializeResponse: ResponseData {
     /// Serializes an HTTP [`Response`].
     fn serialize(&mut self, method: &Method) -> Vec<u8> {
-        let body = self.get_body().cloned();
-        let status = self.get_status().to_owned();
+        let body = self.body().cloned();
+        let status = self.status();
         let mut headers = HashMap::new();
 
         let status_line = sereliaze_status_line("HTTP/1.1", &status.code());
@@ -49,7 +49,7 @@ pub trait SerializeResponse: ResponseData {
             );
         }
 
-        let response_headers = self.get_headers();
+        let response_headers = self.headers();
         let headers = serialize_headers(&mut headers, response_headers);
         let mut response = Vec::new();
 
@@ -63,7 +63,7 @@ pub trait SerializeResponse: ResponseData {
     /// Serializes an HTTP response with a status code `503` (Service Unavailable).
     fn service_unavailable(&self) -> Vec<u8> {
         let mut response = Vec::new();
-        let status_line = sereliaze_status_line("HTTP/1.1", &self.get_status().code());
+        let status_line = sereliaze_status_line("HTTP/1.1", &self.status().code());
 
         response.extend_from_slice(&status_line);
         response.extend_from_slice(b"\r\n");
@@ -79,8 +79,8 @@ pub trait SerializeResponse: ResponseData {
     }
 
     /// Parses [`String`] status code into [`u16`].
-    fn status(&mut self) -> u16 {
-        self.get_status()
+    fn to_status(&mut self) -> u16 {
+        self.status()
             .code()
             .parse::<u16>()
             .expect("parse status code")

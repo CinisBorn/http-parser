@@ -5,7 +5,7 @@ version = 4
 [[package]]
 name = "http-core"
 version = "0.3.0"
-source = "git+https://github.com/CinisBorn/http-core?tag=v0.3.0#df23b952cdc630ce82ca3d1edb0d37261d91e812"
+source = "git+https://github.com/CinisBorn/http-core?tag=v0.4.0#7ccda7010327e2f3cdb70655411cd6bd7e97087c"
 
 [[package]]
 name = "http-parser"

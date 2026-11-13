@@ -125,14 +125,18 @@ where
                 ParserErr::InvalidInput(err.to_string())
             })?;
 
-            let met = Method::map_method(method);
-            let ver = HttpVersion::map(version);
+            let met = Method::to_method(method).ok_or_else(|| {
+                let message = format!("Unknown method: {}", method.to_owned());
+                ParserErr::InvalidInput(message)
+            })?;
+            
+            let ver = HttpVersion::from(version);
 
             if let HttpVersion::Unsupported(v) = ver {
                 return Err(ParserErr::UnsupportedHttpVersion(v.clone()));
             }
 
-            let req_start_line = RequestLine::new(ver, met, target.to_owned());
+            let req_start_line = RequestLine::build(ver, met, target);
 
             break Ok(ParserState::Complete(req_start_line));
         }
