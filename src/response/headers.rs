@@ -35,6 +35,31 @@ pub(crate) fn insert_header<T: Display>(
     );
 }
 
+pub(crate) fn serialize_headers(
+    headers: &mut HashMap<String, String>,
+    response_headers: &HashMap<String, String>,
+) -> Vec<u8> {
+    let mut response = Vec::new();
+
+    for (key, value) in headers {
+        response.extend_from_slice(key.as_bytes());
+        response.extend_from_slice(b": ");
+        response.extend_from_slice(value.as_bytes());
+        response.extend_from_slice(b"\r\n");
+    }
+
+    if !response_headers.is_empty() {
+        for (key, value) in response_headers {
+            response.extend_from_slice(key.as_bytes());
+            response.extend_from_slice(b": ");
+            response.extend_from_slice(value.as_bytes());
+            response.extend_from_slice(b"\r\n");
+        }
+    }
+
+    response
+}
+
 #[cfg(test)]
 mod serialization {
     use super::*;

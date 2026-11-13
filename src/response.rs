@@ -2,7 +2,11 @@
 
 use std::{collections::HashMap};
 
-use headers::{insert_header_with_list_value, insert_header};
+use headers::{
+    insert_header_with_list_value, 
+    insert_header,
+    serialize_headers
+};
 
 use http_core::Method;
 use http_core::response::{
@@ -97,30 +101,7 @@ fn sereliaze_status_line(version: &str, status: &str) -> Vec<u8> {
     response
 }
 
-fn serialize_headers(
-    headers: &mut HashMap<String, String>,
-    response_headers: &HashMap<String, String>,
-) -> Vec<u8> {
-    let mut response = Vec::new();
 
-    for (key, value) in headers {
-        response.extend_from_slice(key.as_bytes());
-        response.extend_from_slice(b": ");
-        response.extend_from_slice(value.as_bytes());
-        response.extend_from_slice(b"\r\n");
-    }
-
-    if !response_headers.is_empty() {
-        for (key, value) in response_headers {
-            response.extend_from_slice(key.as_bytes());
-            response.extend_from_slice(b": ");
-            response.extend_from_slice(value.as_bytes());
-            response.extend_from_slice(b"\r\n");
-        }
-    }
-
-    response
-}
 
 fn insert_body(body: Option<&Vec<u8>>, serialize_body: bool) -> Vec<u8> {
     let mut response = Vec::new();
