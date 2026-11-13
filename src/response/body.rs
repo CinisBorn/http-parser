@@ -9,7 +9,7 @@ pub(crate) fn serialize(
     config: &SerializationConfing
 ) -> Vec<u8> {
     let is_allowed = body_is_allowed(
-        config.status.code().as_str(), 
+        config.status.as_str(), 
         config.method
     );
 
@@ -41,7 +41,7 @@ mod serialization {
         let content = b"lorem ipsom dolor".to_vec();
         let config  = SerializationConfing {
             method: Method::GET,
-            status: StatusCode::Ok
+            status: StatusCode::Ok.code()
         };
 
         let res = serialize(Some(content), &config);

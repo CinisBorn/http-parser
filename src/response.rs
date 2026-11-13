@@ -22,7 +22,7 @@ mod status;
 /// Contains shared information across serialization processes.
 pub(crate) struct SerializationConfing {
     method: Method,
-    status: StatusCode
+    status: String
 }
 
 impl SerializeResponse for Response {}
@@ -33,13 +33,12 @@ pub trait SerializeResponse: ResponseData {
     fn serialize(&mut self, method: &Method) -> Vec<u8> {
         let config = SerializationConfing {
             method: *method,
-            status: self.status().clone()
+            status: self.status().code()
         };
 
-        let status = self.status();
         let mut headers = HashMap::new();
 
-        let status_line = status::serialize("HTTP/1.1", &config.status.code());
+        let status_line = status::serialize("HTTP/1.1", &config.status);
         let body = body::serialize(self.body().cloned(), &config);
         
         let content_length = body.len() - 2;
@@ -52,7 +51,7 @@ pub trait SerializeResponse: ResponseData {
             );
         }
 
-        if let StatusCode::MethodNotAllowed(methods) = status {
+        if let StatusCode::MethodNotAllowed(methods) = self.status() {
             insert_header_with_list_value(
                 &mut headers, 
                 "Allow", 
