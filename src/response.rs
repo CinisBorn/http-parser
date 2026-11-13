@@ -2,18 +2,15 @@
 
 use std::{collections::HashMap};
 
-use headers::{
-    insert_header_with_list_value, 
-    insert_header,
-    serialize_headers
-};
+use headers::serialize_headers;
 
 use http_core::Method;
 use http_core::response::{
     Response, 
-    ResponseData, 
-    StatusCode
+    ResponseData
 };
+
+use crate::response::headers::{content_length, method_not_allowed};
 
 mod headers;
 mod body;
@@ -40,29 +37,11 @@ pub trait SerializeResponse: ResponseData {
 
         let status_line = status::serialize("HTTP/1.1", &config.status);
         let body = body::serialize(self.body().cloned(), &config);
+
+        // initializes some headers if needed.
+        content_length(body.len() - 2, &mut headers, &config);
+        method_not_allowed(self.status(), &mut headers);
         
-        let content_length = body.len() - 2;
-
-        if content_length == 0 {
-            insert_header(
-                &mut headers, 
-                "Content-Length", 
-                content_length
-            );
-        }
-
-        if let StatusCode::MethodNotAllowed(methods) = self.status() {
-            insert_header_with_list_value(
-                &mut headers, 
-                "Allow", 
-                methods
-                    .iter()
-                    .cloned()
-                    .map(|v| v.to_str().to_string())
-                    .collect::<Vec<String>>()
-            );
-        }
-
         let response_headers = self.headers();
         let headers = serialize_headers(&mut headers, response_headers);
         let mut response = Vec::new();

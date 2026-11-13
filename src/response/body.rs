@@ -24,7 +24,7 @@ pub(crate) fn serialize(
 }
 
 /// Check if it's allowed the response insert a message body.
-fn body_is_allowed(status: &str, method: Method) -> bool {
+pub(crate) fn body_is_allowed(status: &str, method: Method) -> bool {
     let method = !matches!(method, Method::HEAD);
     let status = !matches!(status, "304" | "204");
 
