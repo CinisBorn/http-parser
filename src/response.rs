@@ -17,6 +17,7 @@ use http_core::response::{
 
 mod headers;
 mod body;
+mod status;
 
 /// Contains shared information across serialization processes.
 pub(crate) struct SerializationConfing {
@@ -39,7 +40,7 @@ pub trait SerializeResponse: ResponseData {
         let status = self.status();
         let mut headers = HashMap::new();
 
-        let status_line = sereliaze_status_line("HTTP/1.1", &status.code());
+        let status_line = status::serialize("HTTP/1.1", &config.status.code());
 
         let body = body::serialize(body.as_ref(), &config);
         let content_length = body.len() - 2;
@@ -78,7 +79,7 @@ pub trait SerializeResponse: ResponseData {
     /// Serializes an HTTP response with a status code `503` (Service Unavailable).
     fn service_unavailable(&self) -> Vec<u8> {
         let mut response = Vec::new();
-        let status_line = sereliaze_status_line("HTTP/1.1", &self.status().code());
+        let status_line = status::serialize("HTTP/1.1", &self.status().code());
 
         response.extend_from_slice(&status_line);
         response.extend_from_slice(b"\r\n");
@@ -100,14 +101,4 @@ pub trait SerializeResponse: ResponseData {
             .parse::<u16>()
             .expect("parse status code")
     }
-}
-
-fn sereliaze_status_line(version: &str, status: &str) -> Vec<u8> {
-    let mut response = Vec::new();
-    response.extend_from_slice(version.as_bytes());
-    response.extend_from_slice(b" ");
-    response.extend_from_slice(status.as_bytes());
-    response.extend_from_slice(b"\r\n");
-
-    response
 }
