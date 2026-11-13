@@ -16,6 +16,13 @@ use http_core::response::{
 };
 
 mod headers;
+mod body;
+
+/// Contains shared information across serialization processes.
+pub(crate) struct SerializationConfing {
+    method: Method,
+    status: StatusCode
+}
 
 impl SerializeResponse for Response {}
 
@@ -23,17 +30,21 @@ impl SerializeResponse for Response {}
 pub trait SerializeResponse: ResponseData {
     /// Serializes an HTTP [`Response`].
     fn serialize(&mut self, method: &Method) -> Vec<u8> {
+        let config = SerializationConfing {
+            method: *method,
+            status: self.status().clone()
+        };
+
         let body = self.body().cloned();
         let status = self.status();
         let mut headers = HashMap::new();
 
         let status_line = sereliaze_status_line("HTTP/1.1", &status.code());
-        let serialize_body = check_response(&status.code(), method);
 
-        let body = insert_body(body.as_ref(), serialize_body);
+        let body = body::serialize(body.as_ref(), &config);
         let content_length = body.len() - 2;
 
-        if serialize_body {
+        if content_length == 0 {
             insert_header(
                 &mut headers, 
                 "Content-Length", 
@@ -99,26 +110,4 @@ fn sereliaze_status_line(version: &str, status: &str) -> Vec<u8> {
     response.extend_from_slice(b"\r\n");
 
     response
-}
-
-
-
-fn insert_body(body: Option<&Vec<u8>>, serialize_body: bool) -> Vec<u8> {
-    let mut response = Vec::new();
-    // mandatory body break line
-    response.extend_from_slice(b"\r\n");
-
-    if let Some(body) = body && serialize_body {
-        response.extend_from_slice(body);
-    }
-
-    response
-}
-
-/// Checks if the response will have a body.
-fn check_response(status: &str, method: &Method) -> bool {
-    let method = !matches!(method, Method::HEAD);
-    let status = !matches!(status, "304" | "204");
-
-    method && status
 }
