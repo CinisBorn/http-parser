@@ -36,13 +36,12 @@ pub trait SerializeResponse: ResponseData {
             status: self.status().clone()
         };
 
-        let body = self.body().cloned();
         let status = self.status();
         let mut headers = HashMap::new();
 
         let status_line = status::serialize("HTTP/1.1", &config.status.code());
-
-        let body = body::serialize(body.as_ref(), &config);
+        let body = body::serialize(self.body().cloned(), &config);
+        
         let content_length = body.len() - 2;
 
         if content_length == 0 {

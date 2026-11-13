@@ -5,7 +5,7 @@ use http_core::Method;
 use crate::response::SerializationConfing;
 
 pub(crate) fn serialize(
-    body: Option<&Vec<u8>>, 
+    body: Option<Vec<u8>>, 
     config: &SerializationConfing
 ) -> Vec<u8> {
     let is_allowed = body_is_allowed(
@@ -17,7 +17,7 @@ pub(crate) fn serialize(
     response.extend_from_slice(b"\r\n");
 
     if let Some(body) = body && is_allowed {
-        response.extend_from_slice(body);
+        response.extend_from_slice(&body);
     }
 
     response
@@ -44,7 +44,7 @@ mod serialization {
             status: StatusCode::Ok
         };
 
-        let res = serialize(Some(&content), &config);
+        let res = serialize(Some(content), &config);
         let res = str::from_utf8(res.as_slice()).unwrap();
 
         assert_eq!("\r\nlorem ipsom dolor", res);
