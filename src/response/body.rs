@@ -4,31 +4,55 @@ use http_core::Method;
 
 use crate::response::SerializationConfing;
 
-pub(crate) fn serialize(
-    body: Option<Vec<u8>>, 
-    config: &SerializationConfing
-) -> Vec<u8> {
-    let is_allowed = body_is_allowed(
-        config.status.as_str(), 
-        config.method
-    );
+/// The HTTP message body.
+/// 
+/// Provides methods for message body serialization.
+pub(crate) struct MessageBody();
 
-    let mut response = Vec::new();
-    response.extend_from_slice(b"\r\n");
+impl MessageBody {
+    /// Serializes the HTTP message body and returns 
+    /// a tuple containing the length of message body 
+    /// and the data, respectively.
+    /// 
+    /// If the status code is `204`, no body is serialized, but it will 
+    /// return a vector contaning the mandatory *`CRLF`* as *data*, and zero
+    /// as *length*.
+    /// 
+    /// If status code is `304` or the method used in the request is 
+    /// `HEAD`, body is serialized, but it's not returned. The 
+    /// returned value contains the length of message body, and
+    /// the mandatory `CRLF`.
+    /// 
+    /// If none of conditions above is found, the body is serialized
+    /// returning the length of message body and the data.
+    pub fn serialize(
+        body: Option<Vec<u8>>, 
+        config: &SerializationConfing
+    ) -> (usize, Vec<u8>) {
+        let should_serialize = !matches!(config.status.as_str(), "204");
+        
+        let mut response = Vec::new();
+        response.extend_from_slice(b"\r\n");
+        
+        if should_serialize {
+            let is_head = matches!(config.method, Method::HEAD);
+            let is_304 = matches!(config.status.as_str(), "304");
 
-    if let Some(body) = body && is_allowed {
-        response.extend_from_slice(&body);
+            if is_head || is_304 {
+                if let Some(body) = body {
+                    return (body.len(), response)
+                }
+            }
+            
+            if let Some(body) = body {
+                response.extend_from_slice(&body);
+            }
+
+            return (response.len() - 2, response)
+        }
+
+        (0, response)
     }
-
-    response
-}
-
-/// Check if it's allowed the response insert a message body.
-pub(crate) fn body_is_allowed(status: &str, method: Method) -> bool {
-    let method = !matches!(method, Method::HEAD);
-    let status = !matches!(status, "304" | "204");
-
-    method && status
 }
 
 #[cfg(test)]
@@ -44,9 +68,11 @@ mod serialization {
             status: StatusCode::Ok.code()
         };
 
-        let res = serialize(Some(content), &config);
-        let res = str::from_utf8(res.as_slice()).unwrap();
-
+        let res = MessageBody::serialize(Some(content), &config);
+        assert_eq!(res.0, 17);
+        
+        let res = str::from_utf8(res.1.as_slice()).unwrap();
         assert_eq!("\r\nlorem ipsom dolor", res);
+        
     }
 }

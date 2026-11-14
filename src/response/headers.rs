@@ -9,7 +9,7 @@ use std::{collections::HashMap, fmt::Display};
 
 use http_core::response::StatusCode;
 
-use crate::response::{SerializationConfing, body::body_is_allowed};
+use crate::response::{SerializationConfing};
 
 pub(crate) fn insert_header_with_list_value<T: AsRef<str>> (
     headers: &mut HashMap<String, String>,
@@ -75,9 +75,9 @@ pub(crate) fn content_length(
     headers: &mut HashMap<String, String>,
     config: &SerializationConfing
 ) {
-    let res = body_is_allowed(&config.status, config.method);
+    let should_insert = !matches!(config.status.as_str(), "204");
     
-    if res {
+    if should_insert {
         insert_header(headers, "Content-Length", length);
     }
 }

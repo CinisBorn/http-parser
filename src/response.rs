@@ -1,25 +1,22 @@
 //! The HTTP Response
 
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 use headers::serialize_headers;
 
 use http_core::Method;
-use http_core::response::{
-    Response, 
-    ResponseData
-};
+use http_core::response::{Response, ResponseData};
 
 use crate::response::headers::{content_length, method_not_allowed};
 
-mod headers;
 mod body;
+mod headers;
 mod status;
 
 /// Contains shared information across serialization processes.
 pub(crate) struct SerializationConfing {
     method: Method,
-    status: String
+    status: String,
 }
 
 impl SerializeResponse for Response {}
@@ -30,25 +27,25 @@ pub trait SerializeResponse: ResponseData {
     fn serialize(&mut self, method: &Method) -> Vec<u8> {
         let config = SerializationConfing {
             method: *method,
-            status: self.status().code()
+            status: self.status().code(),
         };
 
         let mut headers = HashMap::new();
 
         let status_line = status::serialize("HTTP/1.1", &config.status);
-        let body = body::serialize(self.body().cloned(), &config);
+        let (len, data) = body::MessageBody::serialize(self.body().cloned(), &config);
 
         // initializes some headers if needed.
-        content_length(body.len() - 2, &mut headers, &config);
+        content_length(len, &mut headers, &config);
         method_not_allowed(self.status(), &mut headers);
-        
+
         let response_headers = self.headers();
         let headers = serialize_headers(&mut headers, response_headers);
         let mut response = Vec::new();
 
         response.extend_from_slice(&status_line);
         response.extend_from_slice(&headers);
-        response.extend_from_slice(&body);
+        response.extend_from_slice(&data);
 
         response
     }
