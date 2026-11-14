@@ -87,6 +87,11 @@ pub enum ParserErr {
     /// The caller is responsible for using this status code when constructing
     /// the HTTP response.
     TooManyItems(u16),
+    /// The parser wasn't able to process the request.
+    /// 
+    /// This variant is normally returned in unknown 
+    /// edge cases.
+    InternalError
 }
 
 #[cfg(feature = "response-error")]
@@ -101,6 +106,7 @@ impl ParserErr {
             RequestHeaderFieldsTooLarge,
             UriTooLong,
             HttpVersionNotSupported,
+            InternalServerError
         };
         
         let mut response = Response::default();
@@ -128,7 +134,8 @@ impl ParserErr {
             Self::UnsupportedHttpVersion(_) => response.set_status(HttpVersionNotSupported),
             Self::ConflictingBodyFraming => response.set_status(BadRequest),
             Self::ContentTooLarge(_) => response.set_status(ContentTooLarge),
-            Self::InvalidInput(_) => response.set_status(BadRequest),   
+            Self::InvalidInput(_) => response.set_status(BadRequest),  
+            Self::InternalError => response.set_status(InternalServerError),
         }
 
         response
@@ -164,6 +171,9 @@ impl std::fmt::Display for ParserErr {
             },
             Self::ContentTooLarge(i) => {
                 write!(f, "The message body exceeded the max size: {i}")
+            },
+            Self::InternalError => {
+                write!(f, "A unknown error occured")
             }
         }
     }
